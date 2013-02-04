@@ -1,6 +1,8 @@
 var app = {
 	gridW: 50.0,
 	gridH: 50.0,
+	rows: 10,
+	cols: 10,
 	focused: null,
 	elemClick: function (){
 		app.canvasBox.find('.element').removeClass('focused');
@@ -83,6 +85,14 @@ var app = {
 			
 		}
 	},
+	resizeGrid: function () {
+		var w = (app.cols * app.gridW) + 1,
+			h = (app.rows * app.gridH) + 1;
+		app.canvasBox.css('width', w);
+		app.canvasBox.css('height', h);
+		$('#canvas').attr('width', w);
+		$('#canvas').attr('height', h);
+	},
 	init: function () {
 		this.canvas = document.getElementById("canvas").getContext("2d");
 		this.canvasBox = $('#canvas-box');
@@ -93,6 +103,17 @@ var app = {
 		$('#grid-box-size').on('change', function () {
 			app.gridW = parseInt($(this).val());
 			app.gridH = parseInt($(this).val());
+			app.resizeGrid();
+			app.drawGrid();
+		});
+		$('#btn-set-size').on('click', function () {
+			app.rows = parseInt($('#size-y').val());
+			app.cols = parseInt($('#size-x').val());
+			app.rows = app.rows === 0 || isNaN(app.rows) ? 10 : app.rows;
+			app.cols = app.cols === 0 || isNaN(app.cols) ? 10 : app.cols;
+			$('#size-y').val(app.rows);
+			$('#size-x').val(app.cols);
+			app.resizeGrid();
 			app.drawGrid();
 		});
 		$(document).keydown(function(e){
@@ -101,8 +122,12 @@ var app = {
 			38 - up
 			39 - right
 			40 - down
+			46 - del
+			27 - esc
+			9  - tab
 			*/
 			if (app.focused !== null) {
+				
 				var keyCode = e.keyCode || e.which;
 				var moveX = 0, moveY = 0, l = parseInt(app.focused.css('left')), t = parseInt(app.focused.css('top'));
 				switch (keyCode) {
@@ -110,15 +135,39 @@ var app = {
 					case 38: moveY = -1; break;
 					case 39: moveX = 1; break;
 					case 40: moveY = 1; break;
+					case 46: 
+						app.focused.remove();
+						app.focused = null;
+					break;
+					case 27: 
+						app.focused.removeClass('focused');
+						app.focused = null;
+					break;
+					case 9:
+						var n = e.shiftKey ? app.focused.prev() : app.focused.next();
+						if (n.hasClass('element')) {
+							app.focused.removeClass('focused');
+							app.focused = n;
+							app.focused.addClass('focused');
+							return false;
+						}
+					break;
 				}
-				l = l + moveX;
-				t = t + moveY;
-				app.focused.css('left', l);
-				app.focused.css('top', t);
+				if (app.focused !== null) {
+					l = l + moveX;
+					t = t + moveY;
+					app.focused.css('left', l);
+					app.focused.css('top', t);
+				}
 			}
 		});
 		//$(".element").draggable({ containment: "#canvas-box", scroll: false });
 
+		$( "#canvas" ).droppable({
+			drop: function( event, ui ) {
+				console.log(e);
+			}
+		});
 		document.getElementById("canvas").addEventListener("dragover", function (e,b,c,d) {
 			e.stopPropagation();
 			e.preventDefault();
@@ -127,6 +176,7 @@ var app = {
 			e.stopPropagation(); // Stops some browsers from redirecting.
 			e.preventDefault();
 			var files = e.dataTransfer.files, me = app;
+			console.log(e.dataTransfer);
 			for (var i = 0, f; f = files[i]; i++) {
 				var reader = new FileReader();
 				reader.file = f;
@@ -153,9 +203,9 @@ var app = {
 		ctx.clearRect (0 ,0 , w , h);
 		ctx.setLineWidth = 1;
 		for(i=0; i<w / 5; i++) {
-			ctx.setStrokeColor('#f9f9f9');
+			ctx.strokeStyle = ('#f9f9f9');
 			if ((i * 5) % boxX == 0)
-				ctx.setStrokeColor('#F2F2F2');
+				ctx.strokeStyle = ('#F2F2F2');
 			ctx.beginPath();
 			ctx.moveTo(i * 5 + 0.5,0.0);
 			ctx.lineTo(i * 5 + 0.5, h);
@@ -163,9 +213,9 @@ var app = {
 			ctx.stroke();
 		}
 		for(i=0; i<h / 5; i++) {
-			ctx.setStrokeColor('#f9f9f9');
+			ctx.strokeStyle = ('#f9f9f9');
 			if ((i * 5) % boxY == 0)
-				ctx.setStrokeColor('#F2F2F2');
+				ctx.strokeStyle = ('#F2F2F2');
 			ctx.beginPath();
 			ctx.moveTo(0, i * 5 + 0.5);
 			ctx.lineTo(w, i * 5 + 0.5);
